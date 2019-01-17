@@ -10,11 +10,18 @@
       <script src="/js/html5shiv.min.js"></script>
       <script src="/js/respond.min.js"></script>
     <![endif]-->
-  </head>
-  <body>
-    <h1 class="text-center">Hello, CPP-WebUI!</h1>
-    <p class="text-center"><button class="btn btn-default" type="submit" onclick="javascript:alert('Hello, CPP-WebUI!');">OK</button></p>
     <script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <h1 class="text-center">Hello!</h1>
+    <p class="text-center"><button class="btn btn-default" type="submit">Demo</button></p>
+    <script>
+      $("button").click(function(){
+        $.ajax({url: "/hello.txt", success: function(result){
+          $("h1").html(result);
+        }});
+      });
+    </script>
   </body>
 </html>

@@ -78,6 +78,9 @@ int main()
 			} else if (request == "/" || request == "/index.html") {
 				text = Load("ext/index.html");
 				contentType = "text/html";
+			} else if (request == "/hello.txt") {
+				text = "Hello, CPP-WebUI!";
+				contentType = "text/text";
 			} else {
 				status = 404;
 				exists = false;
