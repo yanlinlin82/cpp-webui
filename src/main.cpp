@@ -19,6 +19,68 @@ std::string Load(const std::string& filename)
 	return text;
 }
 
+std::string ParseRequest(const char* buf)
+{
+	std::string request;
+	if (strncmp(buf, "GET ", 4) == 0) {
+		const char* s = buf + 4;
+		const char* p = strchr(s, ' ');
+		request = std::string(s, p);
+	}
+	std::cerr << "Request: '" << request << "'" << std::endl;
+	return request;
+}
+
+std::string Process(const std::string& request)
+{
+	int status = 200;
+	std::string text;
+	std::string contentType;
+	bool exists = true;
+	if (!request.empty()) {
+		if (request == "/css/bootstrap.min.css") {
+			text = Load("ext/css/bootstrap.min.css");
+			contentType = "text/css";
+		} else if (request == "/css/bootstrap-theme.min.css") {
+			text = Load("ext/css/bootstrap-theme.min.css");
+			contentType = "text/css";
+		} else if (request == "/js/bootstrap.min.js") {
+			text = Load("ext/js/bootstrap.min.js");
+			contentType = "text/javascript";
+		} else if (request == "/js/html5shiv.min.js") {
+			text = Load("ext/js/html5shiv.min.js");
+			contentType = "text/javascript";
+		} else if (request == "/js/jquery.min.js") {
+			text = Load("ext/js/jquery.min.js");
+			contentType = "text/javascript";
+		} else if (request == "/js/respond.min.js") {
+			text = Load("ext/js/respond.min.js");
+			contentType = "text/javascript";
+		} else if (request == "/" || request == "/index.html") {
+			text = Load("ext/index.html");
+			contentType = "text/html";
+		} else if (request == "/hello.txt") {
+			text = "Hello, CPP-WebUI!";
+			contentType = "text/text";
+		} else {
+			status = 404;
+			exists = false;
+		}
+	}
+
+	std::ostringstream ss;
+	if (exists) {
+		ss << "HTTP/1.1 " << status << " OK\r\n"
+			"Content-Length: " << text.size() << "\r\n"
+			"Content-Type: " << contentType << "\r\n"
+			"\r\n" << text;
+	} else {
+		ss << "HTTP/1.1 " << status << " Page does not exist\r\n\r\n";
+	}
+	text = ss.str();
+	return text;
+}
+
 int main()
 {
 	int s = socket(AF_INET, SOCK_STREAM, 0);
@@ -48,58 +110,11 @@ int main()
 		recv(cs, buf, sizeof(buf), 0);
 		//std::cerr << "[RECV] " << buf << std::endl;
 
-		int status = 200;
-		std::string text;
-		std::string contentType;
-		bool exists = true;
-		if (strncmp(buf, "GET ", 4) == 0) {
-			const char* s = buf + 4;
-			const char* p = strchr(s, ' ');
-			std::string request(s, p);
-			std::cerr << "Request: '" << request << "'" << std::endl;
-			if (request == "/css/bootstrap.min.css") {
-				text = Load("ext/css/bootstrap.min.css");
-				contentType = "text/css";
-			} else if (request == "/css/bootstrap-theme.min.css") {
-				text = Load("ext/css/bootstrap-theme.min.css");
-				contentType = "text/css";
-			} else if (request == "/js/bootstrap.min.js") {
-				text = Load("ext/js/bootstrap.min.js");
-				contentType = "text/javascript";
-			} else if (request == "/js/html5shiv.min.js") {
-				text = Load("ext/js/html5shiv.min.js");
-				contentType = "text/javascript";
-			} else if (request == "/js/jquery.min.js") {
-				text = Load("ext/js/jquery.min.js");
-				contentType = "text/javascript";
-			} else if (request == "/js/respond.min.js") {
-				text = Load("ext/js/respond.min.js");
-				contentType = "text/javascript";
-			} else if (request == "/" || request == "/index.html") {
-				text = Load("ext/index.html");
-				contentType = "text/html";
-			} else if (request == "/hello.txt") {
-				text = "Hello, CPP-WebUI!";
-				contentType = "text/text";
-			} else {
-				status = 404;
-				exists = false;
-			}
-		}
+		std::string request = ParseRequest(buf);
+		std::string response = Process(request);
 
-		std::ostringstream ss;
-		if (exists) {
-			ss << "HTTP/1.1 " << status << " OK\r\n"
-				"Content-Length: " << text.size() << "\r\n"
-				"Content-Type: " << contentType << "\r\n"
-				"\r\n" << text;
-		} else {
-			ss << "HTTP/1.1 " << status << " Page does not exist\r\n\r\n";
-		}
-		text = ss.str();
-
-		for (size_t pos = 0; pos < text.size(); ) {
-			int n = send(cs, text.c_str() + pos, text.size() - pos, 0);
+		for (size_t pos = 0; pos < response.size(); ) {
+			int n = send(cs, response.c_str() + pos, response.size() - pos, 0);
 			if (n <= 0) break;
 			pos += n;
 		}
