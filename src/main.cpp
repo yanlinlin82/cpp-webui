@@ -7,16 +7,20 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-std::string Load(const std::string& filename)
+bool LoadContent(const std::string& filename, std::string& text)
 {
 	std::cerr << "Loading '" << filename << "'" << std::endl;
 	std::ifstream file(filename);
-	std::string text, line;
+	if (!file.is_open()) {
+		return false;
+	}
+	text.clear();
+	std::string line;
 	while (std::getline(file, line)) {
 		text += line + "\r\n";
 	}
 	std::cerr << " " << text.size() << " byte(s) loaded" << std::endl;
-	return text;
+	return true;
 }
 
 std::string ParseRequest(const char* buf)
@@ -31,6 +35,12 @@ std::string ParseRequest(const char* buf)
 	return request;
 }
 
+std::string GetExtName(const std::string& filename)
+{
+	auto pos = filename.find_last_of('.');
+	return (pos == std::string::npos ? "" : filename.substr(pos));
+}
+
 std::string Process(const std::string& request)
 {
 	int status = 200;
@@ -38,33 +48,23 @@ std::string Process(const std::string& request)
 	std::string contentType;
 	bool exists = true;
 	if (!request.empty()) {
-		if (request == "/css/bootstrap.min.css") {
-			text = Load("ext/css/bootstrap.min.css");
+		auto ext = GetExtName(request);
+		if (ext == ".css") {
 			contentType = "text/css";
-		} else if (request == "/css/bootstrap-theme.min.css") {
-			text = Load("ext/css/bootstrap-theme.min.css");
-			contentType = "text/css";
-		} else if (request == "/js/bootstrap.min.js") {
-			text = Load("ext/js/bootstrap.min.js");
+		} else if (ext == ".js") {
 			contentType = "text/javascript";
-		} else if (request == "/js/html5shiv.min.js") {
-			text = Load("ext/js/html5shiv.min.js");
-			contentType = "text/javascript";
-		} else if (request == "/js/jquery.min.js") {
-			text = Load("ext/js/jquery.min.js");
-			contentType = "text/javascript";
-		} else if (request == "/js/respond.min.js") {
-			text = Load("ext/js/respond.min.js");
-			contentType = "text/javascript";
-		} else if (request == "/" || request == "/index.html") {
-			text = Load("ext/index.html");
+		} else {
 			contentType = "text/html";
-		} else if (request == "/hello.txt") {
+		}
+
+		if (request == "/hello.txt") {
 			text = "Hello, CPP-WebUI!";
 			contentType = "text/text";
 		} else {
-			status = 404;
-			exists = false;
+			if (!LoadContent("ext" + (request == "/" ? "/index.html" : request), text)) {
+				status = 404;
+				exists = false;
+			}
 		}
 	}
 
